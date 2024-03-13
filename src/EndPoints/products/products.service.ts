@@ -1,35 +1,40 @@
 import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class ProductsService {
-  private static products = [];
-  create(product) {
-    ProductsService.products.push(product);
-    return ProductsService.products;
-  }
+  constructor(@InjectModel('products') private ProductModel) {}
 
-  findAll() {
-    return ProductsService.products;
+  async findAll() {
+    const allProducts = await this.ProductModel.find({});
+    return allProducts;
   }
 
   findOne(id) {
-    const theProduct = ProductsService.products.find((p) => p.id == id);
-    return theProduct;
+    return this.ProductModel.findById(id);
   }
 
-  update(id, product) {
-    const productIndex = ProductsService.products.findIndex((o) => o.id == id);
-    console.log(productIndex);
-    ProductsService.products[productIndex] = {
-      ...ProductsService.products[productIndex],
-      ...product,
-    };
-    return ProductsService.products;
+  async create(product) {
+    const newProduct = new this.ProductModel(product);
+    await newProduct.save();
+    return newProduct;
   }
 
-  remove(id: number) {
-    const productIndex = ProductsService.products.findIndex((o) => o.id == id);
-    ProductsService.products.splice(productIndex, 1);
-    return ProductsService.products;
+  async update(id, product) {
+    const updatedProduct = await this.ProductModel.findByIdAndUpdate(
+      id,
+      product,
+      { new: true },
+    );
+    if (updatedProduct) {
+      return { message: 'Updated Successfully', data: updatedProduct };
+    } else {
+      return { message: 'Not Found' };
+    }
+  }
+
+  async remove(id) {
+    await this.ProductModel.findByIdAndDelete(id);
+    return { message: 'Deleted Successfully' };
   }
 }

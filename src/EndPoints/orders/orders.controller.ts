@@ -6,51 +6,56 @@ import {
   Patch,
   Param,
   Delete,
+  Header,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
-import { OrdersService } from './orders.service';
+import { OrderService } from './orders.service';
+import { UserRoles } from '../users/auth.decorator';
+import { Role } from '../users/auth.enum';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(private readonly ordersService: OrderService) {}
 
+  @UserRoles(Role.Admin)
+  @UsePipes(ValidationPipe)
   @Post()
-  create(
-    @Body('id') orderID,
-    @Body('totalprice') totalPrice,
-    @Body('items') items,
-  ) {
-    const data = { id: orderID, totalprice: totalPrice, items };
-    return this.ordersService.create(data);
+  async create(@Body('totalprice') totalPrice, @Body('items') items) {
+    const data = { totalprice: totalPrice, items };
+    return this.ordersService.Add(data);
   }
 
+  @Header('Content-Type', 'application/json')
+  @Header('set-Cookie', 'username=aly')
   @Get()
-  findAll() {
-    return this.ordersService.findAll();
+  async findAll() {
+    return this.ordersService.Orders();
   }
 
   @Get(':id')
-  findOne(@Param('id') id) {
-    return this.ordersService.findOne(+id);
+  async findOne(@Param('id') id: string) {
+    return this.ordersService.OrderByID(id);
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id') id: string,
     @Body('id') orderID,
     @Body('totalprice') totalPrice,
     @Body('items') items,
   ) {
     const data = { id: orderID, totalprice: totalPrice, items };
-    return this.ordersService.update(+id, data);
+    return this.ordersService.update(id, data);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.ordersService.remove(+id);
+  async remove(@Param('id') id: string) {
+    return this.ordersService.delete(id);
   }
 
   @Get(':id/products')
-  getOrderProducts(@Param('id') id) {
-    return this.ordersService.findOrderProduct(+id);
+  async getOrderProducts(@Param('id') id: string) {
+    return this.ordersService.findOrderWithProducts(id);
   }
 }

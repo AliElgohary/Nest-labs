@@ -1,52 +1,41 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { ProductsService } from '../products/products.service';
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
-export class OrdersService {
-  constructor(
-    @Inject(ProductsService)
-    private readonly productsService: ProductsService,
-  ) {}
+export class OrderService {
+  constructor(@InjectModel('orders') private OrderModel) {}
 
-  private orders = [];
-  create(order) {
-    this.orders.push(order);
-    return this.orders;
+  async Orders() {
+    const AllOrders = await this.OrderModel.find({});
+    return AllOrders;
+  }
+  OrderByID(id) {
+    return this.OrderModel.findById(id);
+  }
+  async Add(order) {
+    const newOrder = new this.OrderModel(order);
+    await newOrder.save();
+    return newOrder;
+  }
+  async update(id, order) {
+    const foundOrder = await this.OrderModel.findOneAndUpdate(
+      { _id: id },
+      order,
+      { new: true },
+    );
+    if (foundOrder) {
+      return { message: 'Updated Successfully', data: foundOrder };
+    } else {
+      return { message: 'Not Found' };
+    }
   }
 
-  findAll() {
-    return this.orders;
+  async delete(id) {
+    await this.OrderModel.Delete(id);
+    return { message: 'Deconsted Successfully' };
   }
 
-  findOne(id) {
-    const theOrder = this.orders.find((o) => o.id == id);
-    return theOrder;
-  }
-
-  update(id: number, data) {
-    const orderIndex = this.orders.findIndex((o) => o.id == id);
-    console.log(orderIndex);
-    this.orders[orderIndex] = {
-      ...this.orders[orderIndex],
-      ...data,
-    };
-    return this.orders;
-  }
-
-  remove(id: number) {
-    const orderIndex = this.orders.findIndex((o) => o.id == id);
-    this.orders.splice(orderIndex, 1);
-    return this.orders;
-  }
-
-  async findOrderProduct(id: number) {
-    const orderIndex = this.orders.findIndex((o) => o.id == id);
-    const orderProducts = this.orders[orderIndex].items;
-    const products = orderProducts.map((itemId) => {
-      const product = this.productsService.findOne(itemId);
-      return product;
-    });
-
-    return products;
+  async findOrderWithProducts(orderId: string): Promise<any> {
+    return this.OrderModel.findById(orderId).populate('items').exec();
   }
 }
